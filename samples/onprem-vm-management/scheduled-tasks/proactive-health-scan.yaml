@@ -1,0 +1,53 @@
+# ============================================================
+# Scheduled Task: Proactive Health Scan
+# Runs every 6 hours to check health of all Arc-enrolled servers.
+# ============================================================
+
+api_version: azuresre.ai/v1
+kind: ScheduledTask
+metadata:
+  name: proactive-health-scan
+spec:
+  name: proactive-health-scan
+  description: >
+    Proactive health check across all Arc-enrolled servers every 6 hours.
+    Checks CPU, memory, disk, critical services, and event logs on both
+    Windows and Linux servers. Reports anomalies and flags servers that
+    need attention.
+  cron: "0 */6 * * *"
+  agent_prompt: |
+    Run a proactive health scan across ALL Arc-enrolled servers.
+
+    Use the wintel-health-check skill to:
+
+    1. Discover all Arc servers in the managed resource group via
+       Azure Resource Graph (microsoft.hybridcompute/machines)
+
+    2. For EACH server, check:
+       - CPU usage trends (last 1 hour from Perf table)
+       - Memory usage trends (use correct counter per OS:
+         Windows = "% Committed Bytes In Use", Linux = "% Used Memory")
+       - Disk free space (LogicalDisk / Logical Disk % Free Space)
+       - Heartbeat recency (Heartbeat table)
+
+    3. For servers with WARNING or CRITICAL metrics, run OS-appropriate
+       diagnostics via Arc Run Commands:
+       - Windows: Get-Service, Get-EventLog, Get-Process (top CPU)
+       - Linux: systemctl list-units --state=failed, journalctl -p err, ps top CPU
+       - SQL (ArcBox-SQL): additionally check MSSQLSERVER and SQLSERVERAGENT services
+
+    4. Generate a summary table:
+       | Server | OS | CPU | Memory | Disk | Services | Status |
+       Use OK / WARNING / CRITICAL per cell based on thresholds:
+       CPU >85% = CRITICAL, >75% = WARNING
+       Memory >85% = CRITICAL, >75% = WARNING
+       Disk <10% free = CRITICAL, <20% = WARNING
+
+    5. If ALL servers are healthy:
+       Report: "Health scan complete. All servers healthy."
+
+    6. If any server has CRITICAL findings:
+       - Detail the specific issue and affected server
+       - Propose remediation steps (but do NOT execute without approval)
+
+    Always include scan timestamp and number of servers checked.

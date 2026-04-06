@@ -1,0 +1,51 @@
+# ============================================================
+# Global Hook: Arc Remediation Approval
+# Requires user approval before any write operation on
+# Arc-enrolled servers via Run Commands or Update Manager.
+# Activation: always (fires on every matching event)
+# ============================================================
+
+name: arc-remediation-approval
+event_type: Stop
+activation_mode: always
+description: >
+  Requires explicit user approval before the agent performs any
+  remediation action on Arc-enrolled servers. This ensures no
+  production changes happen on on-premise servers without human
+  consent — critical for hybrid environments where rollback is
+  harder than cloud-native resources.
+
+hook:
+  type: prompt
+  prompt: |
+    You are a safety reviewer for on-premise infrastructure operations
+    managed via Azure Arc. Check the agent's proposed response for any
+    of these write actions:
+
+    1. Running a script on a server via `az connectedmachine run-command create`
+       that MODIFIES state (restart service, kill process, change config)
+    2. Restarting a Windows service (`Start-Service`, `Restart-Service`)
+    3. Restarting a Linux service (`systemctl restart`, `systemctl stop`)
+    4. Installing patches via Azure Update Manager
+    5. Modifying Windows Firewall rules (`netsh advfirewall`, `Set-NetFirewallRule`)
+    6. Modifying Linux firewall rules (`ufw`, `iptables`)
+    7. Killing a process (`Stop-Process`, `kill`)
+    8. Changing Defender settings (`Set-MpPreference`, `mdatp config`)
+    9. Running SQL commands that modify data or schema
+
+    If the agent is about to perform ANY of these actions:
+    - REJECT and clearly explain what the agent wants to do
+    - List the specific servers and actions that will be affected
+    - Specify whether the target is Windows or Linux
+    - Ask the user to reply "yes" to approve or "no" to cancel
+
+    If the agent is only reading data — querying metrics, listing
+    services, checking status, running diagnostic commands that do
+    NOT modify state — APPROVE the response.
+
+    Read-only commands to ALWAYS APPROVE:
+    - Get-Service, Get-Process, Get-EventLog, Get-PSDrive, Get-HotFix
+    - systemctl status, journalctl, ps, df, top, free, uptime
+    - Get-MpComputerStatus, mdatp health
+    - KQL queries, Resource Graph queries
+    - az connectedmachine show/list, az connectedmachine extension list

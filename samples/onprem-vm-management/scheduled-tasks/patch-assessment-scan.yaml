@@ -1,0 +1,62 @@
+# ============================================================
+# Scheduled Task: Patch Assessment Scan
+# Runs weekly (Monday 08:00 UTC) to check missing patches
+# on all Arc-enrolled servers via Azure Update Manager.
+# ============================================================
+
+api_version: azuresre.ai/v1
+kind: ScheduledTask
+metadata:
+  name: patch-assessment-scan
+spec:
+  name: patch-assessment-scan
+  description: >
+    Weekly patch compliance assessment for all Arc-enrolled servers.
+    Queries Azure Update Manager for missing patches, runs pre-patch
+    readiness checks, and generates a risk report grouped by OS type.
+  cron: "0 8 * * 1"
+  agent_prompt: |
+    Run a patch compliance assessment for all Arc-enrolled servers.
+
+    Use the patch-validation skill to:
+
+    1. Query Azure Update Manager via Resource Graph for ALL
+       Arc-enrolled servers. Get missing patch counts by classification:
+       - Windows: Critical, Security, Definition Updates, Other
+       - Linux: Security, Other
+
+    2. For each server with missing patches, run OS-appropriate
+       pre-patch readiness checks via Arc Run Commands:
+
+       Windows servers:
+       - Disk space: Get-PSDrive (need ≥20% free)
+       - Pending reboot: Check HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired
+       - Critical services: Get-Service WinRM, EventLog, W32Time, WinDefend
+       - For ArcBox-SQL: additionally check MSSQLSERVER service and last backup time
+
+       Linux servers:
+       - Disk space: df -h (need ≥20% free on /)
+       - Pending reboot: test -f /var/run/reboot-required
+       - Critical services: systemctl status cron ssh rsyslog
+
+    3. Generate a patch risk report:
+
+       ## Patch Assessment Summary
+       **Scan Date:** {timestamp}
+       **Servers Assessed:** {count}
+
+       ### Missing Patches by Server
+       | Server | OS | Critical | Security | Other | Total | Ready? |
+
+       ### Pre-Patch Readiness
+       | Server | Disk OK | No Reboot Pending | Services OK | Ready |
+
+       ### Recommended Deployment Plan
+       Wave 1 (Dev/Test): Ubuntu servers first (lowest risk)
+       Wave 2 (Non-Critical): ArcBox-Win2K22, ArcBox-Win2K25
+       Wave 3 (Critical): ArcBox-SQL (requires DB backup first)
+
+    4. Do NOT install any patches automatically.
+       Report findings and recommendations only.
+
+    Always include the scan timestamp and total missing patch count.

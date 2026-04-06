@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+
+name: onprem-vm-management
+metadata:
+  template: onprem-vm-management@1.0.0
+
+# Infrastructure provisioned via Bicep (infra/main.bicep)
+# azd up provisions: Resource Group, Log Analytics Workspace,
+# Application Insights, Azure Monitor Alert Rules,
+# SRE Agent (Microsoft.App/agents), and role assignments.
+# ArcBox must be deployed separately as a prerequisite.
+
+# Post-deploy: run manually after azd up completes
+# bash scripts/post-deploy.sh
