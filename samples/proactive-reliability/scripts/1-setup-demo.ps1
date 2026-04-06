@@ -53,7 +53,7 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = Split-Path -Parent $ScriptDir
 $AppPath = Join-Path $ProjectRoot "SREPerfDemo"
 $InfraPath = Join-Path $ProjectRoot "infrastructure"
-$ControllerPath = Join-Path $AppPath "Controllers\ProductsController.cs"
+$ControllerPath = Join-Path $AppPath "Controllers" "ProductsController.cs"
 
 # Helper functions
 function Write-Step { Write-Host "`n[STEP] $args" -ForegroundColor Cyan }
@@ -139,7 +139,7 @@ Write-Step "Deploying infrastructure (App Service, App Insights, Alerts)"
 
 $deploymentOutput = az deployment group create `
     --resource-group $ResourceGroupName `
-    --template-file "$InfraPath\main.bicep" `
+    --template-file (Join-Path $InfraPath "main.bicep") `
     --parameters appServiceName=$AppServiceName `
     --query "properties.outputs" `
     --output json | ConvertFrom-Json
@@ -271,7 +271,7 @@ $config = @{
     SetupTime = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
 } | ConvertTo-Json -Depth 2
 
-$config | Set-Content "$ProjectRoot\demo-config.json"
+$config | Set-Content (Join-Path $ProjectRoot "demo-config.json")
 Write-Info "Configuration saved to demo-config.json"
 
 # ============================================================

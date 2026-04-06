@@ -16,6 +16,9 @@ param location string
 @description('Object ID of the user running azd up (for role assignments)')
 param principalId string = ''
 
+@description('VM size. Standard_B2s is often capacity-constrained; Standard_B2s_v2 is a reliable fallback.')
+param vmSize string = 'Standard_B2s'
+
 @description('VM admin username')
 param vmAdminUsername string = 'azureuser'
 
@@ -61,7 +64,7 @@ module vmApp 'modules/vm.bicep' = {
     subnetId: network.outputs.appSubnetId
     adminUsername: vmAdminUsername
     adminPassword: vmAdminPassword
-    vmSize: 'Standard_B2s'
+    vmSize: vmSize
     tags: union(tags, { role: 'sap-application-server' })
   }
 }

@@ -393,6 +393,30 @@ curl -s -o /dev/null -X DELETE "${AGENT_ENDPOINT}/api/v1/incidentPlayground/filt
 
 echo ""
 
+# ── Step 3.5: Connect Application Insights ────────────────────────────────────
+APPI_ID=$(azd env get-value APPLICATION_INSIGHTS_ID 2>/dev/null || \
+  az monitor app-insights component show --resource-group "$RG_NAME" --query "[0].id" -o tsv 2>/dev/null)
+
+if [ -n "$APPI_ID" ]; then
+  echo "📊 Step 3.5: Connecting Application Insights..."
+  TOKEN=$(get_token)
+  RESULT=$(curl -s -w "\n%{http_code}" -X PUT \
+    -H "Authorization: Bearer ${TOKEN}" \
+    -H "Content-Type: application/json" \
+    "${AGENT_ENDPOINT}/api/v2/extendedAgent/connectors/appinsights" \
+    -d "{\"name\":\"appinsights\",\"properties\":{\"dataConnectorType\":\"ApplicationInsights\",\"dataSource\":\"${APPI_ID}\"}}" 2>/dev/null)
+  HTTP_CODE=$(echo "$RESULT" | tail -1)
+  if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]; then
+    echo "   ✅ Application Insights connected"
+  else
+    echo "   ⚠️  App Insights connection returned HTTP ${HTTP_CODE} (configure manually in portal → Logs)"
+  fi
+else
+  echo "📊 Step 3.5: Application Insights... ⏭️  Not found in environment"
+fi
+
+echo ""
+
 # ── Step 4: GitHub integration ───────────────────────────────────────────────
 if [ -n "$GITHUB_REPO" ]; then
 echo "🔗 Step 4/5: GitHub integration..."
