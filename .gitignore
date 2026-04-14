@@ -9,3 +9,5 @@
 Thumbs.db
 Desktop.ini
 samples/deployment-compliance/skills/.DS_Store
+samples/onprem-vm-management/infra/main.json
+labs/onprem-vm-management/infra/main.json
